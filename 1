@@ -3,368 +3,306 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bé Học Toán Lớp 2 - Mini App</title>
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- React & ReactDOM CDN -->
+    <title>Bé Học Toán Lớp 2 - Cùng Bạn Nhỏ Thông Thái</title>
+    <!-- Thư viện React & Babel để chạy JSX ngay trên trình duyệt -->
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <!-- Babel for JSX -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <!-- Framer Motion CDN -->
-    <script src="https://unpkg.com/framer-motion@10.16.4/dist/framer-motion.js"></script>
-    <!-- Canvas Confetti CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
-    <!-- Lucide Icons CDN -->
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
-    
+    <!-- Confetti (Pháo hoa) -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&display=swap');
-        
-        body {
-            font-family: 'Quicksand', sans-serif;
-            margin: 0;
-            padding: 0;
-            overflow: hidden;
-        }
-
-        .cursor-blink {
-            display: inline-block;
-            width: 4px;
-            height: 1em;
-            background-color: #60a5fa;
-            margin-left: 4px;
-            animation: blink 0.8s infinite;
-        }
-
-        @keyframes blink {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0; }
-        }
-
-        .bg-pattern {
-            background-image: radial-gradient(#bfdbfe 1px, transparent 1px);
-            background-size: 20px 20px;
-        }
+        body { font-family: 'Quicksand', sans-serif; }
+        .math-shadow { text-shadow: 4px 4px 0px rgba(0,0,0,0.1); }
+        .btn-pop:active { transform: scale(0.95); }
+        @keyframes bounce-slow { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+        .animate-bounce-slow { animation: bounce-slow 2s infinite; }
     </style>
 </head>
-<body class="bg-blue-50 bg-pattern">
+<body class="bg-blue-50">
     <div id="root"></div>
 
     <script type="text/babel">
         const { useState, useEffect, useCallback, useRef } = React;
-        const { motion, AnimatePresence } = FramerMotion;
 
-        // Icon Wrapper Component for Lucide
-        const Icon = ({ name, className, fill = "none" }) => {
-            const iconRef = useRef(null);
-            useEffect(() => {
-                if (iconRef.current) {
-                    lucide.createIcons({
-                        attrs: { class: className, fill: fill },
-                        nameAttr: 'data-lucide',
-                        icons: { [name]: lucide.icons[name] }
-                    });
-                }
-            }, [name, className, fill]);
-            return <i data-lucide={name} ref={iconRef} className={className}></i>;
+        // Định nghĩa các Icon bằng SVG để không phụ thuộc thư viện ngoài
+        const Icons = {
+            Star: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>,
+            Play: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>,
+            Trophy: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>,
+            Timer: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
+            RotateCcw: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>,
+            Check: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>,
+            X: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         };
 
         const ANIMAL_ICONS = [
-            { id: 'cat', icon: 'Cat', color: 'text-orange-400', bg: 'bg-orange-100' },
-            { id: 'dog', icon: 'Dog', color: 'text-amber-600', bg: 'bg-amber-100' },
-            { id: 'bird', icon: 'Bird', color: 'text-blue-400', bg: 'bg-blue-100' },
-            { id: 'fish', icon: 'Fish', color: 'text-cyan-400', bg: 'bg-cyan-100' },
-            { id: 'rabbit', icon: 'Rabbit', color: 'text-pink-400', bg: 'bg-pink-100' },
-            { id: 'turtle', icon: 'Turtle', color: 'text-green-500', bg: 'bg-green-100' },
+            { id: 'cat', label: '🐱', color: 'bg-orange-100 text-orange-500' },
+            { id: 'dog', label: '🐶', color: 'bg-amber-100 text-amber-600' },
+            { id: 'bird', label: '🐦', color: 'bg-blue-100 text-blue-500' },
+            { id: 'rabbit', label: '🐰', color: 'bg-pink-100 text-pink-500' },
+            { id: 'turtle', label: '🐢', color: 'bg-green-100 text-green-600' },
+            { id: 'lion', label: '🦁', color: 'bg-yellow-100 text-yellow-600' },
         ];
 
         function App() {
-            const [gameState, setGameState] = useState('START');
-            const [gameMode, setGameMode] = useState('ENDLESS');
+            const [gameState, setGameState] = useState('START'); // START, SETUP, MODE, PLAYING, RESULT
+            const [gameMode, setGameMode] = useState('ENDLESS'); // ENDLESS, QUIZ
             const [playerName, setPlayerName] = useState('');
             const [selectedIcon, setSelectedIcon] = useState(ANIMAL_ICONS[0]);
             const [question, setQuestion] = useState(null);
             const [userInput, setUserInput] = useState('');
             const [score, setScore] = useState(0);
             const [timeLeft, setTimeLeft] = useState(30);
-            const [feedback, setFeedback] = useState(null);
-            const [streak, setStreak] = useState(0);
+            const [feedback, setFeedback] = useState(null); // CORRECT, WRONG
             const [quizIndex, setQuizIndex] = useState(0);
-            const [quizCorrectCount, setQuizCorrectCount] = useState(0);
+            const [quizCorrect, setQuizCorrect] = useState(0);
             const timerRef = useRef(null);
 
             const generateQuestion = useCallback(() => {
-                const types = ['MATH', 'MATH', 'MATH', 'COMPARE'];
+                const types = ['MATH', 'MATH', 'COMPARE'];
                 const type = types[Math.floor(Math.random() * types.length)];
                 
                 if (type === 'COMPARE') {
-                    const n1 = Math.floor(Math.random() * 100);
-                    const n2 = Math.floor(Math.random() * 100);
+                    const n1 = Math.floor(Math.random() * 50);
+                    const n2 = Math.floor(Math.random() * 50);
                     const ans = n1 > n2 ? '>' : n1 < n2 ? '<' : '=';
-                    setQuestion({ type: 'COMPARE', num1: n1, num2: n2, operator: '?', answer: ans, options: ['<', '=', '>'] });
+                    setQuestion({ type: 'COMPARE', n1, n2, op: '?', ans, options: ['<', '=', '>'] });
                 } else {
-                    const ops = ['+', '-', '×', '÷'];
-                    const operator = ops[Math.floor(Math.random() * ops.length)];
+                    const ops = ['+', '-', '×'];
+                    const op = ops[Math.floor(Math.random() * ops.length)];
                     let n1, n2, ans;
 
-                    if (operator === '+') {
-                        n1 = Math.floor(Math.random() * 90) + 1;
-                        n2 = Math.floor(Math.random() * (100 - n1)) + 1;
+                    if (op === '+') {
+                        n1 = Math.floor(Math.random() * 50) + 1;
+                        n2 = Math.floor(Math.random() * 49) + 1;
                         ans = n1 + n2;
-                    } else if (operator === '-') {
-                        n1 = Math.floor(Math.random() * 99) + 2;
-                        n2 = Math.floor(Math.random() * n1) + 1;
+                    } else if (op === '-') {
+                        n1 = Math.floor(Math.random() * 80) + 20;
+                        n2 = Math.floor(Math.random() * n1);
                         ans = n1 - n2;
-                    } else if (operator === '×') {
+                    } else {
                         const tables = [2, 3, 4, 5, 10];
                         n1 = tables[Math.floor(Math.random() * tables.length)];
                         n2 = Math.floor(Math.random() * 10) + 1;
                         ans = n1 * n2;
-                    } else {
-                        const tables = [2, 3, 4, 5, 10];
-                        n2 = tables[Math.floor(Math.random() * tables.length)];
-                        ans = Math.floor(Math.random() * 10) + 1;
-                        n1 = n2 * ans;
                     }
 
-                    const q = { type: 'MATH', num1: n1, num2: n2, operator, answer: ans };
-                    
-                    if (gameMode === 'QUIZ_10') {
-                        const options = new Set();
-                        options.add(ans.toString());
-                        while (options.size < 4) {
-                            const offset = Math.floor(Math.random() * 11) - 5;
-                            const distractor = Math.max(0, ans + offset);
-                            options.add(distractor.toString());
+                    const q = { type: 'MATH', n1, n2, op, ans };
+                    if (gameMode === 'QUIZ') {
+                        const opts = new Set([ans.toString()]);
+                        while(opts.size < 4) {
+                            const offset = Math.floor(Math.random() * 10) - 5;
+                            opts.add(Math.max(0, ans + offset).toString());
                         }
-                        q.options = Array.from(options).sort((a, b) => parseInt(a) - parseInt(b));
+                        q.options = Array.from(opts).sort((a, b) => a - b);
                     }
                     setQuestion(q);
                 }
-
                 setUserInput('');
-                setTimeLeft(30);
+                setTimeLeft(20);
                 setFeedback(null);
             }, [gameMode]);
 
-            const startMode = (mode) => {
-                setGameMode(mode);
-                setScore(0);
-                setStreak(0);
-                setQuizIndex(0);
-                setQuizCorrectCount(0);
-                setGameState(mode === 'ENDLESS' ? 'PLAYING' : 'QUIZ');
-                setTimeout(generateQuestion, 100);
-            };
-
-            const handleAnswer = useCallback((val) => {
-                if (!question || feedback) return;
-
-                const isCorrect = val === question.answer.toString();
+            const handleAnswer = (val) => {
+                if (feedback) return;
+                const isCorrect = val.toString() === question.ans.toString();
                 
                 if (isCorrect) {
                     setFeedback('CORRECT');
-                    if (gameMode === 'ENDLESS') {
-                        setScore(s => s + 10 + Math.floor(timeLeft / 3));
-                        setStreak(s => s + 1);
-                    } else {
-                        setQuizCorrectCount(c => c + 1);
-                    }
-                    
-                    confetti({
-                        particleCount: 150,
-                        spread: 70,
-                        origin: { y: 0.6 },
-                        colors: ['#FFD700', '#FF4500', '#1E90FF', '#32CD32']
-                    });
+                    if (gameMode === 'ENDLESS') setScore(s => s + 10);
+                    else setQuizCorrect(c => c + 1);
+                    confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
                 } else {
                     setFeedback('WRONG');
-                    setStreak(0);
                 }
 
                 setTimeout(() => {
-                    if (gameMode === 'QUIZ_10') {
+                    if (gameMode === 'QUIZ') {
                         if (quizIndex < 9) {
                             setQuizIndex(i => i + 1);
                             generateQuestion();
                         } else {
-                            setScore(quizCorrectCount * 10 + (isCorrect ? 10 : 0));
                             setGameState('RESULT');
                         }
                     } else {
                         generateQuestion();
                     }
                 }, 1500);
-            }, [question, feedback, timeLeft, generateQuestion, gameMode, quizIndex, quizCorrectCount]);
+            };
 
             useEffect(() => {
-                if ((gameState === 'PLAYING' || gameState === 'QUIZ') && timeLeft > 0 && !feedback) {
-                    timerRef.current = setInterval(() => {
-                        setTimeLeft(t => {
-                            if (t <= 1) {
-                                if (gameMode === 'ENDLESS') {
-                                    setGameState('RESULT');
-                                } else {
-                                    handleAnswer('TIMEOUT');
-                                }
-                                return 0;
-                            }
-                            return t - 1;
-                        });
-                    }, 1000);
+                if (gameState === 'PLAYING' && timeLeft > 0 && !feedback) {
+                    timerRef.current = setInterval(() => setTimeLeft(t => t - 1), 1000);
+                } else if (timeLeft === 0 && gameState === 'PLAYING') {
+                    if (gameMode === 'ENDLESS') setGameState('RESULT');
+                    else handleAnswer('TIMEOUT');
                 }
                 return () => clearInterval(timerRef.current);
-            }, [gameState, feedback, timeLeft, gameMode, handleAnswer]);
+            }, [gameState, timeLeft, feedback]);
 
+            // Xử lý bàn phím
             useEffect(() => {
-                const handleKeyDown = (e) => {
-                    if ((gameState !== 'PLAYING' && gameState !== 'QUIZ') || feedback || !question) return;
-                    if (question.options) return;
-
-                    if (e.key >= '0' && e.key <= '9') {
-                        if (userInput.length < 3) setUserInput(prev => prev + e.key);
-                    } else if (e.key === 'Backspace') {
-                        setUserInput(prev => prev.slice(0, -1));
-                    } else if (e.key === 'Enter' && userInput !== '') {
-                        handleAnswer(userInput);
-                    }
+                const onKey = (e) => {
+                    if (gameState !== 'PLAYING' || feedback || question?.options) return;
+                    if (e.key >= '0' && e.key <= '9') setUserInput(p => (p + e.key).slice(0, 3));
+                    if (e.key === 'Backspace') setUserInput(p => p.slice(0, -1));
+                    if (e.key === 'Enter' && userInput) handleAnswer(userInput);
                 };
-                window.addEventListener('keydown', handleKeyDown);
-                return () => window.removeEventListener('keydown', handleKeyDown);
-            }, [gameState, feedback, question, userInput, handleAnswer]);
+                window.addEventListener('keydown', onKey);
+                return () => window.removeEventListener('keydown', onKey);
+            }, [gameState, feedback, userInput, question]);
 
             return (
-                <div className="min-h-screen bg-gradient-to-b from-blue-100 to-purple-100 p-4 flex flex-col items-center justify-center">
-                    <AnimatePresence mode="wait">
-                        {gameState === 'START' && (
-                            <motion.div key="start" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9 }} className="text-center space-y-8">
-                                <motion.div animate={{ rotate: [0, 5, -5, 0] }} transition={{ repeat: Infinity, duration: 4 }}>
-                                    <Icon name="Star" className="w-24 h-24 text-yellow-400 mx-auto drop-shadow-xl" fill="currentColor" />
-                                </motion.div>
-                                <h1 className="text-5xl font-black text-blue-600 mt-4 tracking-tight drop-shadow-sm">BÉ HỌC TOÁN</h1>
-                                <p className="text-blue-500 font-medium text-xl">Lớp 2: Cộng, Trừ, Nhân, Chia</p>
-                                <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => setGameState('SETUP')} className="bg-orange-500 hover:bg-orange-600 text-white px-12 py-5 rounded-full text-3xl font-bold shadow-2xl flex items-center gap-3 mx-auto transition-colors">
-                                    <Icon name="Play" className="w-8 h-8" fill="currentColor" /> BẮT ĐẦU
-                                </motion.button>
-                            </motion.div>
-                        )}
-
-                        {gameState === 'SETUP' && (
-                            <motion.div key="setup" initial={{ opacity: 0, x: 50 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -50 }} className="w-full max-w-md bg-white rounded-[3rem] p-8 shadow-2xl border-4 border-blue-200 text-center space-y-6">
-                                <h2 className="text-3xl font-black text-blue-600">Bé tên là gì nhỉ?</h2>
-                                <div className="relative">
-                                    <Icon name="User" className="absolute left-4 top-1/2 -translate-y-1/2 text-blue-300 w-6 h-6" />
-                                    <input type="text" value={playerName} onChange={(e) => setPlayerName(e.target.value)} placeholder="Nhập tên của bé..." className="w-full pl-12 pr-4 py-4 bg-blue-50 border-2 border-blue-100 rounded-2xl text-xl font-bold text-blue-700 focus:outline-none focus:border-blue-400 transition-colors" maxLength={15} />
+                <div className="min-h-screen flex flex-col items-center justify-center p-4">
+                    {/* MÀN HÌNH CHÀO */}
+                    {gameState === 'START' && (
+                        <div className="text-center space-y-8">
+                            <div className="animate-bounce-slow">
+                                <div className="bg-yellow-400 p-6 rounded-full inline-block shadow-xl">
+                                    <Icons.Star />
                                 </div>
-                                <div className="space-y-4">
-                                    <p className="text-gray-500 font-bold">Chọn một người bạn đồng hành:</p>
-                                    <div className="grid grid-cols-3 gap-4">
-                                        {ANIMAL_ICONS.map((item) => (
-                                            <motion.button key={item.id} whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => setSelectedIcon(item)} className={`p-4 rounded-2xl flex flex-col items-center gap-2 transition-all border-4 ${selectedIcon.id === item.id ? 'border-blue-400 bg-blue-50' : 'border-transparent bg-gray-50'}`}>
-                                                <Icon name={item.icon} className={`w-10 h-10 ${item.color}`} />
-                                            </motion.button>
+                            </div>
+                            <h1 className="text-5xl font-black text-blue-600 tracking-tight math-shadow">BÉ HỌC TOÁN</h1>
+                            <p className="text-blue-400 font-bold text-xl">Lớp 2: Cộng, Trừ & Nhân Chia</p>
+                            <button 
+                                onClick={() => setGameState('SETUP')}
+                                class="bg-orange-500 hover:bg-orange-600 text-white px-12 py-5 rounded-full text-3xl font-bold shadow-2xl transition-all btn-pop flex items-center gap-3 mx-auto"
+                            >
+                                <Icons.Play /> BẮT ĐẦU
+                            </button>
+                        </div>
+                    )}
+
+                    {/* CÀI ĐẶT TÊN & ICON */}
+                    {gameState === 'SETUP' && (
+                        <div className="bg-white p-8 rounded-[2rem] shadow-2xl w-full max-w-md border-4 border-blue-100 text-center space-y-6">
+                            <h2 className="text-2xl font-bold text-blue-600">Bé tên là gì nhỉ?</h2>
+                            <input 
+                                type="text" 
+                                value={playerName}
+                                onChange={e => setPlayerName(e.target.value)}
+                                placeholder="Nhập tên của bé..."
+                                className="w-full p-4 bg-blue-50 rounded-xl border-2 border-blue-200 text-xl font-bold text-center focus:outline-none focus:border-blue-400"
+                            />
+                            <div className="grid grid-cols-3 gap-3">
+                                {ANIMAL_ICONS.map(icon => (
+                                    <button 
+                                        key={icon.id}
+                                        onClick={() => setSelectedIcon(icon)}
+                                        className={`text-3xl p-4 rounded-xl transition-all ${selectedIcon.id === icon.id ? 'ring-4 ring-blue-400 scale-110' : 'opacity-50'} ${icon.color}`}
+                                    >
+                                        {icon.label}
+                                    </button>
+                                ))}
+                            </div>
+                            <button 
+                                disabled={!playerName}
+                                onClick={() => setGameState('MODE')}
+                                className={`w-full py-4 rounded-xl text-xl font-bold text-white shadow-lg ${playerName ? 'bg-green-500' : 'bg-gray-300'}`}
+                            >
+                                TIẾP TỤC
+                            </button>
+                        </div>
+                    )}
+
+                    {/* CHỌN CHẾ ĐỘ */}
+                    {gameState === 'MODE' && (
+                        <div className="space-y-6 w-full max-w-md">
+                            <h2 className="text-3xl font-black text-center text-blue-600">Chọn chế độ chơi</h2>
+                            <button onClick={() => { setGameMode('ENDLESS'); setGameState('PLAYING'); setScore(0); generateQuestion(); }} className="w-full p-6 bg-white rounded-2xl shadow-xl border-4 border-blue-100 flex items-center gap-4 hover:border-blue-400 transition-all">
+                                <div className="bg-blue-500 text-white p-3 rounded-lg"><Icons.Star /></div>
+                                <div className="text-left"><b className="text-xl block">Luyện tập</b><span className="text-gray-400">Vô hạn câu hỏi, tính điểm</span></div>
+                            </button>
+                            <button onClick={() => { setGameMode('QUIZ'); setGameState('PLAYING'); setQuizIndex(0); setQuizCorrect(0); generateQuestion(); }} className="w-full p-6 bg-white rounded-2xl shadow-xl border-4 border-purple-100 flex items-center gap-4 hover:border-purple-400 transition-all">
+                                <div className="bg-purple-500 text-white p-3 rounded-lg"><Icons.Trophy /></div>
+                                <div className="text-left"><b className="text-xl block">Kiểm tra</b><span className="text-gray-400">10 câu trắc nghiệm A/B/C/D</span></div>
+                            </button>
+                        </div>
+                    )}
+
+                    {/* MÀN HÌNH CHƠI */}
+                    {gameState === 'PLAYING' && question && (
+                        <div className="w-full max-w-md bg-white p-8 rounded-[3rem] shadow-2xl border-4 border-blue-100 relative overflow-hidden">
+                            <div className="flex justify-between items-center mb-8">
+                                <div className="flex items-center gap-2">
+                                    <span className={`text-2xl p-2 rounded-lg ${selectedIcon.color}`}>{selectedIcon.label}</span>
+                                    <b className="text-blue-600">{playerName}</b>
+                                </div>
+                                <div className="flex items-center gap-4">
+                                    <div className="flex items-center gap-1 text-orange-500 font-bold"><Icons.Timer /> {timeLeft}s</div>
+                                    {gameMode === 'ENDLESS' && <div className="font-black text-blue-600 text-xl">{score}</div>}
+                                </div>
+                            </div>
+
+                            <div className="text-center space-y-8">
+                                <div className="text-6xl font-black text-gray-700 tracking-widest flex justify-center items-center gap-4">
+                                    <span>{question.n1}</span>
+                                    <span className="text-blue-500">{question.op}</span>
+                                    <span>{question.n2}</span>
+                                    <span className="text-gray-300">=</span>
+                                </div>
+
+                                {question.options ? (
+                                    <div className="grid grid-cols-2 gap-4">
+                                        {question.options.map((opt, i) => (
+                                            <button key={i} onClick={() => handleAnswer(opt)} className="bg-blue-50 hover:bg-blue-100 p-6 rounded-2xl text-3xl font-bold text-blue-600 border-2 border-blue-100 transition-all">
+                                                {opt}
+                                            </button>
                                         ))}
                                     </div>
-                                </div>
-                                <button onClick={() => setGameState('MODE_SELECT')} disabled={!playerName.trim()} className={`w-full py-4 rounded-2xl text-2xl font-black shadow-lg transition-all ${playerName.trim() ? 'bg-green-500 text-white hover:bg-green-600' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}>TIẾP TỤC</button>
-                            </motion.div>
-                        )}
-
-                        {gameState === 'MODE_SELECT' && (
-                            <motion.div key="mode_select" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-md bg-white rounded-[3rem] p-8 shadow-2xl border-4 border-blue-200 text-center space-y-8">
-                                <h2 className="text-3xl font-black text-blue-600">Chọn chế độ chơi</h2>
-                                <div className="grid grid-cols-1 gap-6">
-                                    <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => startMode('ENDLESS')} className="p-6 bg-blue-50 border-4 border-blue-100 rounded-3xl text-left flex items-center gap-6 hover:border-blue-400 transition-all">
-                                        <div className="bg-blue-500 p-4 rounded-2xl text-white"><Icon name="Zap" className="w-8 h-8" /></div>
-                                        <div><h3 className="text-2xl font-black text-blue-700">Luyện tập</h3><p className="text-blue-400 font-bold">Vô hạn câu hỏi, đếm điểm</p></div>
-                                    </motion.button>
-                                    <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => startMode('QUIZ_10')} className="p-6 bg-purple-50 border-4 border-purple-100 rounded-3xl text-left flex items-center gap-6 hover:border-purple-400 transition-all">
-                                        <div className="bg-purple-500 p-4 rounded-2xl text-white"><Icon name="BookOpen" className="w-8 h-8" /></div>
-                                        <div><h3 className="text-2xl font-black text-purple-700">Kiểm tra</h3><p className="text-purple-400 font-bold">10 câu trắc nghiệm A/B/C/D</p></div>
-                                    </motion.button>
-                                </div>
-                                <button onClick={() => setGameState('SETUP')} className="text-gray-400 font-bold flex items-center gap-2 mx-auto"><Icon name="ChevronLeft" className="w-5 h-5" /> Quay lại</button>
-                            </motion.div>
-                        )}
-
-                        {(gameState === 'PLAYING' || gameState === 'QUIZ') && question && (
-                            <motion.div key="playing" initial={{ opacity: 0, scale: 1.1 }} animate={{ opacity: 1, scale: 1 }} className="w-full max-w-md bg-white/90 backdrop-blur-md rounded-[3rem] p-8 shadow-2xl border-4 border-blue-200 relative">
-                                <div className="flex justify-between items-center mb-10">
-                                    <div className="flex items-center gap-3">
-                                        <div className={`p-2 rounded-xl ${selectedIcon.bg}`}><Icon name={selectedIcon.icon} className={`w-8 h-8 ${selectedIcon.color}`} /></div>
-                                        <div className="text-left"><p className="text-xs font-bold text-gray-400 uppercase tracking-widest">{gameMode === 'QUIZ_10' ? `Câu ${quizIndex + 1}/10` : 'Người chơi'}</p><p className="text-lg font-black text-blue-600 leading-none">{playerName}</p></div>
+                                ) : (
+                                    <div className="space-y-4">
+                                        <div className="text-7xl font-black text-blue-600 border-b-8 border-blue-100 inline-block min-w-[150px] pb-2">
+                                            {userInput || '?'}
+                                        </div>
+                                        <p className="text-gray-400 font-bold">Dùng bàn phím số & Enter</p>
                                     </div>
-                                    <div className="flex gap-2">
-                                        <div className="flex items-center gap-2 bg-blue-100 px-4 py-2 rounded-full"><Icon name="Timer" className={`w-6 h-6 ${timeLeft < 10 ? 'text-red-500 animate-pulse' : 'text-blue-500'}`} /><span className={`text-2xl font-black ${timeLeft < 10 ? 'text-red-500' : 'text-blue-700'}`}>{timeLeft}s</span></div>
-                                        {gameMode === 'ENDLESS' && <div className="flex items-center gap-2 bg-yellow-100 px-4 py-2 rounded-full"><Icon name="Trophy" className="w-6 h-6 text-yellow-600" /><span className="text-2xl font-black text-yellow-700">{score}</span></div>}
-                                    </div>
-                                </div>
+                                )}
+                            </div>
 
-                                <div className="text-center mb-8">
-                                    <div className="text-6xl font-black text-gray-800 flex items-center justify-center gap-4">
-                                        {question.type === 'COMPARE' ? (<><span>{question.num1}</span><span className="text-blue-500">?</span><span>{question.num2}</span></>) : (<><span>{question.num1}</span><span className="text-blue-500">{question.operator}</span><span>{question.num2}</span><span className="text-gray-400">=</span></>)}
-                                    </div>
-                                    {question.type === 'MATH' && !question.options && (
-                                        <div className="mt-6 h-24 flex flex-col items-center justify-center">
-                                            <div className={`text-6xl font-black border-b-8 min-w-[140px] pb-2 transition-colors flex items-center justify-center ${feedback === 'CORRECT' ? 'text-green-500 border-green-500' : feedback === 'WRONG' ? 'text-red-500 border-red-500' : 'text-blue-600 border-blue-200'}`}>
-                                                {userInput || '?'}{!feedback && <span className="cursor-blink"></span>}
-                                            </div>
-                                            <p className="text-gray-400 font-bold mt-4 animate-bounce">Nhấn phím số & Enter</p>
+                            {/* Phản hồi Đúng/Sai */}
+                            {feedback && (
+                                <div className={`absolute inset-0 flex flex-col items-center justify-center bg-white/90 z-20 transition-all`}>
+                                    {feedback === 'CORRECT' ? (
+                                        <div className="text-green-500 text-center">
+                                            <div className="scale-150 mb-4"><Icons.Check /></div>
+                                            <b className="text-3xl">CHÍNH XÁC!</b>
+                                        </div>
+                                    ) : (
+                                        <div className="text-red-500 text-center">
+                                            <div className="scale-150 mb-4"><Icons.X /></div>
+                                            <b className="text-3xl">TIẾC QUÁ!</b>
+                                            <p className="text-gray-500 font-bold">Đáp án là: {question.ans}</p>
                                         </div>
                                     )}
                                 </div>
+                            )}
+                        </div>
+                    )}
 
-                                {question.options && (
-                                    <div className="grid grid-cols-2 gap-4 mt-8">
-                                        {question.options.map((opt, idx) => (
-                                            <motion.button key={idx} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => handleAnswer(opt)} className="bg-white border-4 border-blue-100 hover:border-blue-400 p-6 rounded-3xl text-3xl font-black text-blue-600 shadow-lg transition-all flex items-center justify-center gap-2">
-                                                {question.type === 'COMPARE' ? (opt === '>' ? <Icon name="ChevronRight" className="w-8 h-8" /> : opt === '<' ? <Icon name="ChevronLeft" className="w-8 h-8" /> : <Icon name="Equal" className="w-8 h-8" />) : opt}
-                                            </motion.button>
-                                        ))}
-                                    </div>
-                                )}
-
-                                <AnimatePresence>
-                                    {feedback && (
-                                        <motion.div initial={{ opacity: 0, scale: 0.5 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 flex items-center justify-center bg-white/60 rounded-[3rem] z-10 backdrop-blur-sm">
-                                            {feedback === 'CORRECT' ? (
-                                                <div className="text-center"><Icon name="CheckCircle2" className="w-32 h-32 text-green-500 mx-auto" /><p className="text-3xl font-black text-green-600 mt-2">CHÍNH XÁC!</p></div>
-                                            ) : (
-                                                <div className="text-center"><Icon name="XCircle" className="w-32 h-32 text-red-500 mx-auto" /><p className="text-3xl font-black text-red-600 mt-2">SAI RỒI!</p><p className="text-xl font-bold text-gray-600">Đáp án là {question.answer}</p></div>
-                                            )}
-                                        </motion.div>
-                                    )}
-                                </AnimatePresence>
-
-                                {streak > 1 && <motion.div initial={{ x: 50, opacity: 0 }} animate={{ x: 0, opacity: 1 }} className="absolute -right-4 top-1/2 bg-yellow-400 text-white px-4 py-2 rounded-l-full font-black shadow-lg">COMBO x{streak} 🔥</motion.div>}
-                            </motion.div>
-                        )}
-
-                        {gameState === 'RESULT' && (
-                            <motion.div key="result" initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} className="text-center space-y-8 bg-white p-12 rounded-[3rem] shadow-2xl border-4 border-yellow-200 w-full max-w-md">
-                                <div className="relative inline-block">
-                                    <Icon name="Trophy" className="w-32 h-32 text-yellow-400 mx-auto drop-shadow-xl" fill="currentColor" />
-                                    <div className={`absolute -bottom-2 -right-2 p-3 rounded-2xl shadow-lg border-4 border-white ${selectedIcon.bg}`}><Icon name={selectedIcon.icon} className={`w-10 h-10 ${selectedIcon.color}`} /></div>
-                                </div>
-                                <div>
-                                    <h2 className="text-3xl font-black text-gray-800 uppercase tracking-tight">GIỎI QUÁ, {playerName}!</h2>
-                                    <p className="text-7xl font-black text-blue-600 mt-4">{gameMode === 'QUIZ_10' ? `${quizCorrectCount}/10` : score}</p>
-                                    <p className="text-xl text-gray-500 font-bold uppercase tracking-widest">{gameMode === 'QUIZ_10' ? 'Số câu đúng' : 'Điểm của bé'}</p>
-                                </div>
-                                <div className="flex gap-4">
-                                    <button onClick={() => startMode(gameMode)} className="bg-blue-500 hover:bg-blue-600 text-white px-8 py-4 rounded-full text-xl font-bold flex items-center gap-2 shadow-lg transition-colors flex-1 justify-center"><Icon name="RotateCcw" className="w-6 h-6" /> CHƠI LẠI</button>
-                                    <button onClick={() => setGameState('START')} className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-8 py-4 rounded-full text-xl font-bold shadow-lg transition-colors flex-1 justify-center">TRANG CHỦ</button>
-                                </div>
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
-
-                    <div className="fixed top-0 left-0 w-full h-full pointer-events-none -z-10 opacity-30">
-                        <div className="absolute top-10 left-10 w-20 h-20 bg-yellow-300 rounded-full blur-3xl" />
-                        <div className="absolute bottom-20 right-10 w-32 h-32 bg-blue-300 rounded-full blur-3xl" />
-                        <div className="absolute top-1/2 left-1/4 w-40 h-40 bg-purple-300 rounded-full blur-3xl" />
-                    </div>
+                    {/* KẾT QUẢ */}
+                    {gameState === 'RESULT' && (
+                        <div className="text-center space-y-8 bg-white p-12 rounded-[3rem] shadow-2xl border-4 border-yellow-200 w-full max-w-md">
+                            <div className="text-8xl">🏆</div>
+                            <h2 className="text-3xl font-black text-gray-800">GIỎI QUÁ, {playerName.toUpperCase()}!</h2>
+                            <div className="text-6xl font-black text-blue-600">
+                                {gameMode === 'QUIZ' ? `${quizCorrect}/10` : score}
+                            </div>
+                            <p className="text-gray-400 font-bold uppercase tracking-widest">
+                                {gameMode === 'QUIZ' ? 'Câu đúng' : 'Điểm của bé'}
+                            </p>
+                            <div className="flex gap-4">
+                                <button onClick={() => setGameState('MODE')} className="flex-1 bg-blue-500 text-white p-4 rounded-2xl font-bold flex items-center justify-center gap-2 shadow-lg"><Icons.RotateCcw /> CHƠI LẠI</button>
+                                <button onClick={() => setGameState('START')} className="flex-1 bg-gray-100 text-gray-600 p-4 rounded-2xl font-bold shadow-lg">TRANG CHỦ</button>
+                            </div>
+                        </div>
+                    )}
                 </div>
             );
         }
